@@ -16,4 +16,4 @@ jobs:
       - name: push image to docker hub
         run: |
           docker login -u jpedrofsgs -p ${{secrets.DOCKER_HUB_TOKEN}}
-          docker push jpedrofsgs/gerenciador-de-projetos-v2:latest
+          docker push jpedrofsgs/trie-view:latest:latest
