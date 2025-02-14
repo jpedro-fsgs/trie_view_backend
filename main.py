@@ -17,18 +17,17 @@ app.add_middleware(
 )
 
 public_trie = Trie()
-
-palavras_trie = Trie()
+words_list_trie = Trie()
 
 with open('data/palavras', 'r') as file:
     words_list = file.read().split('\n')
 
 for word in words_list:
-    palavras_trie.insert(word)
+    words_list_trie.insert(word)
 
 @app.get("/match/{word}")
 def match(word: str):
-    results = palavras_trie.matches(word)
+    results = words_list_trie.matches(word)
     return {
         "length": len(results),
         "results": results
