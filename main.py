@@ -6,6 +6,7 @@ from trie import Trie
 app = FastAPI()
 
 allowed_origins = os.environ.get("ALLOWED_ORIGINS", "").split(',')
+allowed_origins = allowed_origins if allowed_origins else ["*"]
 clear_password = os.environ.get("CLEAR_PASSWORD", "")
 
 app.add_middleware(
@@ -35,12 +36,12 @@ def match(word: str):
 
 @app.post("/insert/{word}")
 def insert(word: str):
-    if word == clear_password:
-        public_trie.clear()
-        return
-    
+
     public_trie.insert(word.strip())
 
+@app.post("/clear")
+def clear():
+    public_trie.clear()
 
 @app.get("/tree")
 def generate_tree():
