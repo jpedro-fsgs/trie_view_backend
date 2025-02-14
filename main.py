@@ -19,7 +19,7 @@ app.add_middleware(
 public_trie = Trie()
 words_list_trie = Trie()
 
-with open('data/palavras', 'r') as file:
+with open('data/verbos', 'r') as file:
     words_list = file.read().split('\n')
 
 for word in words_list:
