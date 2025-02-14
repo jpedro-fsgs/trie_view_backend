@@ -1,20 +1,15 @@
-import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from trie import Trie
 
 app = FastAPI()
 
-allowed_origins = os.environ.get("ALLOWED_ORIGINS", "").split(',')
-allowed_origins = allowed_origins if allowed_origins else ["*"]
-clear_password = os.environ.get("CLEAR_PASSWORD", "")
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Permitir todos os métodos
-    allow_headers=["*"],  # Permitir todos os cabeçalhos
+    allow_methods=["*"], 
+    allow_headers=["*"], 
 )
 
 public_trie = Trie()
