@@ -4,6 +4,10 @@ WORKDIR /app
 
 COPY . /app
 
+ENV ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+
+ENV CLEAR_PASSWORD=${CLEAR_PASSWORD}
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8000

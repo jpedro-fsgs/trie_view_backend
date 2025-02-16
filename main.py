@@ -1,43 +1,30 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from trie import Trie
 
-app = FastAPI()
+from routes.public_tree import router as public_tree_router
+import logging
+
+allowed_origins = os.environ.get("ALLOWED_ORIGINS").split(',')
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+logger.info(f"Allowed origins: {allowed_origins}")
+
+app = FastAPI(title="TrieView")
+
+app.include_router(public_tree_router, prefix="/public_tree", tags=["Public Tree"])
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"], 
-    allow_headers=["*"], 
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-public_trie = Trie()
-words_list_trie = Trie()
 
-with open('data/verbos', 'r') as file:
-    words_list = file.read().split('\n')
-
-for word in words_list:
-    words_list_trie.insert(word)
-
-@app.get("/match/{word}")
-def match(word: str):
-    results = words_list_trie.matches(word)
-    return {
-        "length": len(results),
-        "results": results
-    }
-
-@app.post("/insert/{word}")
-def insert(word: str):
-
-    public_trie.insert(word.strip())
-
-@app.post("/clear")
-def clear():
-    public_trie.clear()
-
-@app.get("/tree")
-def generate_tree():
-    return public_trie.get_tree()
+@app.get("/")
+async def index():
+    return {"What is Love?": "https://www.youtube.com/watch?v=i0p1bmr0EmE"}
