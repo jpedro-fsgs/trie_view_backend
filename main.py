@@ -1,7 +1,11 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routes.public_tree import router as public_tree_router
+
+allowed_origins = os.environ.get("ALLOWED_ORIGINS").split(',')
+print(allowed_origins)
 
 app = FastAPI(title="TrieView")
 
@@ -9,7 +13,7 @@ app.include_router(public_tree_router, prefix="/public_tree", tags=["Public Tree
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

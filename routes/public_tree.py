@@ -1,7 +1,7 @@
+import os
 from typing import Set
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
-from models.improved_trie import ImprovedTrie
 from models.radix import RadixTree
 from models.trie import Trie
 
@@ -11,11 +11,14 @@ active_connections: Set[WebSocket] = set()
 
 public_trie = Trie()
 public_radix = RadixTree()
-public_improved_trie = ImprovedTrie()
 
+clear_password = os.environ.get("CLEAR_PASSWORD")
 
-@router.post("/clear")
-async def clear():
+@router.post("/clear/{password}")
+async def clear(password):
+    if clear_password != password:
+        raise HTTPException(status_code=403, detail="Wrong password")
+    
     public_trie.clear()
     public_radix.clear()
 
