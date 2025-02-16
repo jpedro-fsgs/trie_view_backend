@@ -3,9 +3,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routes.public_tree import router as public_tree_router
+import logging
 
 allowed_origins = os.environ.get("ALLOWED_ORIGINS").split(',')
-print(allowed_origins)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+logger.info(f"Allowed origins: {allowed_origins}")
 
 app = FastAPI(title="TrieView")
 

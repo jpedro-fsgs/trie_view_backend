@@ -1,9 +1,13 @@
+import logging
 import os
 from typing import Set
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from models.radix import RadixTree
 from models.trie import Trie
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -13,6 +17,10 @@ public_trie = Trie()
 public_radix = RadixTree()
 
 clear_password = os.environ.get("CLEAR_PASSWORD")
+
+logger.info(f"Password set" if clear_password else "Password not set")
+
+
 
 @router.post("/clear/{password}")
 async def clear(password):
@@ -87,7 +95,7 @@ async def ws_connect(websocket: WebSocket):
 
     await websocket.accept()
     active_connections.add(websocket)
-    print(f"Usuários conectados: {len(active_connections)}")
+    logger.info(f"Usuários conectados: {len(active_connections)}")
     await websocket.send_json(
         {
             "connectedUsers": len(active_connections),
@@ -101,10 +109,10 @@ async def ws_connect(websocket: WebSocket):
 
     except WebSocketDisconnect:
         # Desconexão normal do cliente
-        print(f"Cliente desconectou normalmente")
+        logger.info(f"Cliente desconectou normalmente")
     except Exception as e:
         # Log de outros erros inesperados
-        print(f"Erro na conexão WebSocket: {str(e)}")
+        logger.info(f"Erro na conexão WebSocket: {str(e)}")
     finally:
         active_connections.remove(websocket)
-        print(f"Usuários conectados: {len(active_connections)}")
+        logger.info(f"Usuários conectados: {len(active_connections)}")
