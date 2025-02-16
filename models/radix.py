@@ -8,86 +8,186 @@ class RadixTreeNode:
 class RadixTree:
     def __init__(self):
         self.root = RadixTreeNode()
+        self.tree_view = self.generate_tree()
 
     def clear(self):
         self.root = RadixTreeNode()
 
-    
+    @staticmethod
+    def _common_prefix(str1, str2):
+        min_length = min(len(str1), len(str2))
+        for i in range(min_length):
+            if str1[i] != str2[i]:
+                return str1[:i]
+        return str1[:min_length]
 
     def insert(self, word):
-        def _common_prefix(str1, str2):
-            min_length = min(len(str1), len(str2))
-            for i in range(min_length):
-                if str1[i] != str2[i]:
-                    return str1[:i]
-                
-            return str1[:min_length]
-
         node = self.root
         index = 0
+
         while index < len(word):
-            for key, child in node.children.items():
-                common_prefix = self._common_prefix(word[index:], key)
+            found_prefix = False
+
+            # Iteramos sobre uma cópia dos itens para permitir modificações no dicionário
+            for edge, child in list(node.children.items()):
+                common_prefix = self._common_prefix(word[index:], edge)
 
                 if common_prefix:
-                    if common_prefix == key:
-                        # Segue para o próximo nó se o prefixo corresponde exatamente à chave do nó
+                    found_prefix = True
+
+                    if common_prefix == edge:
+                        # Se o prefixo comum coincide com toda a aresta, seguimos para o nó filho
                         node = child
                         index += len(common_prefix)
                         break
                     else:
-                        # Divide o nó existente
-                        remaining_key = key[len(common_prefix):]
-                        new_child = RadixTreeNode(remaining_key)
+                        # Caso haja apenas correspondência parcial, é necessário dividir o nó existente.
+                        remaining_edge = edge[len(common_prefix):]
+                        remaining_word = word[index + len(common_prefix):]
+
+                        # Cria um novo nó para a parte restante da aresta existente
+                        new_child = RadixTreeNode(remaining_edge)
                         new_child.children = child.children
                         new_child.word = child.word
 
+                        # Atualiza o nó filho para representar o prefixo comum
                         child.key = common_prefix
-                        child.children = {remaining_key: new_child}
-                        child.word = None  # O prefixo agora não é mais uma palavra completa
+                        child.children = {remaining_edge: new_child}
+                        child.word = None
 
-                        # Continua a inserção para a parte restante da palavra
-                        node = child
-                        index += len(common_prefix)
-                        break
-            else:
-                # Nenhum prefixo comum encontrado, adicionamos um novo nó
-                node.children[word[index:]] = RadixTreeNode(word[index:])
-                node.children[word[index:]].word = word
+                        # Atualiza o dicionário do nó pai:
+                        # Remove a chave antiga e insere a nova chave (prefixo comum)
+                        node.children.pop(edge)
+                        node.children[common_prefix] = child
+
+                        # Se ainda houver parte da palavra a inserir, adicionamos um novo nó
+                        if remaining_word:
+                            child.children[remaining_word] = RadixTreeNode(remaining_word)
+                            child.children[remaining_word].word = word
+                        else:
+                            # Caso contrário, marcamos o nó atual como final da palavra
+                            child.word = word
+
+                        self.tree_view = self.generate_tree()
+                        return True
+
+            # Se não foi encontrado nenhum prefixo comum, adicionamos um novo nó
+            if not found_prefix:
+                remaining_word = word[index:]
+                node.children[remaining_word] = RadixTreeNode(remaining_word)
+                node.children[remaining_word].word = word
+                self.tree_view = self.generate_tree()
                 return True
 
+        # Se chegamos ao final da palavra, verificamos se ela já está presente
         if node.word == word:
             return False  # Palavra já existe
+
         node.word = word
+        self.tree_view = self.generate_tree()
         return True
 
 
+    def remove(self, word):
+        """
+        Remove a palavra 'word' da árvore, se ela existir.
+        Percorre a árvore consumindo partes da palavra de acordo com as chaves dos nós.
+        """
+        node = self.root
+        stack = []  # Armazena os pares (nó pai, aresta utilizada, nó filho) para retroceder
+        remaining = word
+
+        # Percorre a árvore comparando partes da palavra com as chaves dos nós
+        while remaining:
+            found = False
+            for edge, child in node.children.items():
+                if remaining.startswith(edge):
+                    stack.append((node, edge, child))
+                    node = child
+                    remaining = remaining[len(edge):]
+                    found = True
+                    break
+            if not found:
+                return False  # Palavra não encontrada
+        
+        # Se a palavra não está marcada no nó final, ela não foi inserida exatamente
+        if node.word != word:
+            return False
+
+        # Desmarca a palavra no nó final
+        node.word = None
+
+        # Remove nós desnecessários (folhas sem palavra armazenada e sem filhos)
+        while stack:
+            parent, edge, child = stack.pop()
+            if child.word is None and not child.children:
+                del parent.children[edge]
+            else:
+                break
+
+        self.tree_view = self.generate_tree()
+        return True
+
 
     def search(self, word):
+        """
+        Busca a palavra 'word' na árvore.
+        Retorna True se a palavra estiver presente (exata) ou False caso contrário.
+        """
         node = self.root
-        for char in word:
-            if char not in node.children:
-                return False
-            node = node.children[char]
-        return node.word
+        remaining = word
 
-    def matches(self, word):
+        # Percorre a árvore consumindo partes da palavra conforme as chaves dos nós
+        while remaining:
+            found = False
+            for edge, child in node.children.items():
+                if remaining.startswith(edge):
+                    remaining = remaining[len(edge):]
+                    node = child
+                    found = True
+                    break
+            if not found:
+                return False  # Caminho para a palavra não foi encontrado
+
+        # Verifica se o nó final marca o término da palavra buscada
+        return node.word == word
+
+
+    def matches(self, prefix, limit=50):
+        """
+        Retorna uma lista (com até 50 itens) de palavras armazenadas na árvore 
+        que começam com o prefixo fornecido.
+        Primeiro, localiza o nó correspondente ao prefixo e, em seguida, percorre a subárvore.
+        """
         node = self.root
+        remaining = prefix
 
-                
+        # Localiza o nó que corresponde ao prefixo (podendo estar no meio de uma aresta)
+        while remaining:
+            found = False
+            for edge, child in node.children.items():
+                if remaining.startswith(edge):
+                    remaining = remaining[len(edge):]
+                    node = child
+                    found = True
+                    break
+                elif edge.startswith(remaining):
+                    # O prefixo está no meio da aresta; podemos considerar esse filho como ponto de partida
+                    node = child
+                    remaining = ""
+                    found = True
+                    break
+            if not found:
+                return []  # Prefixo não encontrado
 
+        # A partir do nó correspondente, faz uma busca em largura (BFS) para coletar as palavras
         matches_list = []
-        queue = []
-        queue.append(node)
-
-        while queue:
-            if len(matches_list) > 50:
-                return matches_list
-
-            current_node = queue.pop()
-            if current_node.word:
-                matches_list.append(current_node.word)
-            queue.extend(current_node.children.values())
+        queue = [node]
+        while queue and len(matches_list) < limit:
+            current = queue.pop(0)
+            if current.word is not None:
+                matches_list.append(current.word)
+            queue.extend(current.children.values())
 
         return matches_list
     
@@ -102,16 +202,19 @@ class RadixTree:
 
         return count
 
-    def get_tree(self):
+    def generate_tree(self):
 
         def build_tree(node):
             return [
                 {
-                    "name": char,
+                    "name": key,
                     "children": build_tree(child_node),
                     **({"attributes": {"word": child_node.word}} if child_node.word else {})
                 }
-                for char, child_node in node.children.items()
+                for key, child_node in node.children.items()
             ]
 
         return {"name": "Root", "children": build_tree(self.root)}
+
+    def get_tree(self):
+        return self.tree_view
