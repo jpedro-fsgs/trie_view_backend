@@ -12,6 +12,7 @@ class RadixTree:
 
     def clear(self):
         self.root = RadixTreeNode()
+        self.tree_view = self.generate_tree()
 
     @staticmethod
     def _common_prefix(str1, str2):

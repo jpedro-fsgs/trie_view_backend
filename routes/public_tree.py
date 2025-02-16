@@ -19,6 +19,12 @@ async def clear():
     public_trie.clear()
     public_radix.clear()
 
+    await live_tree(
+        connections=active_connections,
+        trie=public_trie.get_tree(),
+        radix=public_radix.get_tree(),
+    )
+
 @router.delete("/delete/{word}")
 async def delete(word):
     success = public_trie.remove(word) and public_radix.remove(word)

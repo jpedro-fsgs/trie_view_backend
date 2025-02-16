@@ -12,6 +12,7 @@ class Trie:
 
     def clear(self):
         self.root = TrieNode()
+        self.tree_view = self.generate_tree()
 
     def insert(self, word):
         node = self.root
