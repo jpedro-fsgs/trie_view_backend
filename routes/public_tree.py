@@ -80,7 +80,10 @@ async def insert(word: str):
         raise HTTPException(status_code=403, detail="Insertion is currently blocked")
 
     public_trie.insert(word)
+    public_trie.update_tree()
     public_radix.insert(word)
+    public_radix.update_tree()
+
 
     await live_tree(
         connections=active_connections,
@@ -100,6 +103,12 @@ async def insert_post(word: str):
         raise HTTPException(status_code=400, detail="Should be single word")
 
     await insert(word)
+
+@router.get("/matches/{word}")
+async def matches(word: str):
+    word = word.strip().lower()
+
+    return public_radix.matches(word)
 
 
 @router.websocket("/ws")

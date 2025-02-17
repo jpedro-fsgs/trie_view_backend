@@ -26,7 +26,6 @@ class Trie:
             return False
         node.word = word
 
-        self.tree_view = self.generate_tree()
         return True
 
     def remove(self, word):
@@ -111,6 +110,9 @@ class Trie:
             ], key=lambda n: n["name"])
 
         return {"name": "Root", "children": build_tree(self.root)}
+    
+    def update_tree(self):
+        self.tree_view = self.generate_tree()
     
     def get_tree(self):
         return self.tree_view

@@ -70,7 +70,7 @@ class RadixTree:
                             # Caso contrário, marcamos o nó atual como final da palavra
                             child.word = word
 
-                        self.tree_view = self.generate_tree()
+    
                         return True
 
             # Se não foi encontrado nenhum prefixo comum, adicionamos um novo nó
@@ -78,7 +78,6 @@ class RadixTree:
                 remaining_word = word[index:]
                 node.children[remaining_word] = RadixTreeNode(remaining_word)
                 node.children[remaining_word].word = word
-                self.tree_view = self.generate_tree()
                 return True
 
         # Se chegamos ao final da palavra, verificamos se ela já está presente
@@ -86,7 +85,7 @@ class RadixTree:
             return False  # Palavra já existe
 
         node.word = word
-        self.tree_view = self.generate_tree()
+
         return True
 
 
@@ -155,7 +154,7 @@ class RadixTree:
         return node.word == word
 
 
-    def matches(self, prefix, limit=50):
+    def matches(self, prefix):
         """
         Retorna uma lista (com até 50 itens) de palavras armazenadas na árvore 
         que começam com o prefixo fornecido.
@@ -185,7 +184,7 @@ class RadixTree:
         # A partir do nó correspondente, faz uma busca em largura (BFS) para coletar as palavras
         matches_list = []
         queue = [node]
-        while queue and len(matches_list) < limit:
+        while queue:
             current = queue.pop(0)
             if current.word is not None:
                 matches_list.append(current.word)
@@ -217,6 +216,9 @@ class RadixTree:
             ], key=lambda n: n["name"])
 
         return {"name": "Root", "children": build_tree(self.root)}
+    
+    def update_tree(self):
+        self.tree_view = self.generate_tree()
 
     def get_tree(self):
         return self.tree_view
