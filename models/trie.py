@@ -8,6 +8,7 @@ class TrieNode:
 class Trie:
     def __init__(self):
         self.root = TrieNode()
+        self.block_insertion = False
         self.tree_view = self.generate_tree()
 
     def clear(self):
