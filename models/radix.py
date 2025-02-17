@@ -206,14 +206,14 @@ class RadixTree:
     def generate_tree(self):
 
         def build_tree(node):
-            return [
+            return sorted([
                 {
                     "name": key,
                     "children": build_tree(child_node),
                     **({"attributes": {"word": child_node.word}} if child_node.word else {})
                 }
                 for key, child_node in node.children.items()
-            ]
+            ], key=lambda n: n["name"])
 
         return {"name": "Root", "children": build_tree(self.root)}
 
