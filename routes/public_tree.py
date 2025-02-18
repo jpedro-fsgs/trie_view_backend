@@ -108,7 +108,9 @@ async def insert_post(word: str):
 async def matches(word: str):
     word = word.strip().lower()
 
-    return public_radix.matches(word)
+    result = public_radix.matches(word)
+
+    return {"length": len(result), "words": result}
 
 
 @router.websocket("/ws")
