@@ -16,15 +16,15 @@ active_connections: Set[WebSocket] = set()
 public_trie = Trie()
 public_radix = RadixTree()
 
-clear_password = os.environ.get("CLEAR_PASSWORD")
+app_password = os.environ.get("APP_PASSWORD")
 
-logger.info(f"Password set" if clear_password else "Password not set")
+logger.info(f"Password set" if app_password else "Password not set")
 
 
 
 @router.post("/clear/{password}")
 async def clear(password):
-    if clear_password != password:
+    if app_password != password:
         raise HTTPException(status_code=403, detail="Wrong password")
     
     public_trie.clear()
@@ -35,6 +35,16 @@ async def clear(password):
         trie=public_trie.get_tree(),
         radix=public_radix.get_tree(),
     )
+
+@router.post("/pause/{password}")
+async def pause(password):
+    if app_password != password:
+        raise HTTPException(status_code=403, detail="Wrong password")
+    
+    public_trie.block_insertion ^= True
+    public_radix.block_insertion ^= True
+
+    return {"status": "blocked" if public_radix.block_insertion else "not blocked"}
 
 @router.delete("/delete/{word}")
 async def delete(word):
@@ -66,9 +76,14 @@ async def live_tree(connections, trie, radix):
             connections.remove(connection)
 
 async def insert(word: str):
+    if public_trie.block_insertion and public_radix.block_insertion:
+        raise HTTPException(status_code=403, detail="Insertion is currently blocked")
 
     public_trie.insert(word)
+    public_trie.update_tree()
     public_radix.insert(word)
+    public_radix.update_tree()
+
 
     await live_tree(
         connections=active_connections,
@@ -88,6 +103,14 @@ async def insert_post(word: str):
         raise HTTPException(status_code=400, detail="Should be single word")
 
     await insert(word)
+
+@router.get("/matches/{word}")
+async def matches(word: str):
+    word = word.strip().lower()
+
+    result = public_radix.matches(word)
+
+    return {"length": len(result), "words": result}
 
 
 @router.websocket("/ws")

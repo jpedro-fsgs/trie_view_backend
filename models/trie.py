@@ -8,6 +8,7 @@ class TrieNode:
 class Trie:
     def __init__(self):
         self.root = TrieNode()
+        self.block_insertion = False
         self.tree_view = self.generate_tree()
 
     def clear(self):
@@ -25,7 +26,6 @@ class Trie:
             return False
         node.word = word
 
-        self.tree_view = self.generate_tree()
         return True
 
     def remove(self, word):
@@ -100,16 +100,19 @@ class Trie:
     def generate_tree(self):
 
         def build_tree(node):
-            return [
+            return sorted([
                 {
                     "name": char,
                     "children": build_tree(child_node),
                     **({"attributes": {"word": child_node.word}} if child_node.word else {})
                 }
                 for char, child_node in node.children.items()
-            ]
+            ], key=lambda n: n["name"])
 
         return {"name": "Root", "children": build_tree(self.root)}
+    
+    def update_tree(self):
+        self.tree_view = self.generate_tree()
     
     def get_tree(self):
         return self.tree_view
