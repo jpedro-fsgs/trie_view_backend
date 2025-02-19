@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from models.radix import RadixTree
 from models.trie import Trie
+import asyncio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,12 +22,11 @@ app_password = os.environ.get("APP_PASSWORD")
 logger.info(f"Password set" if app_password else "Password not set")
 
 
-
 @router.post("/clear/{password}")
 async def clear(password):
     if app_password != password:
         raise HTTPException(status_code=403, detail="Wrong password")
-    
+
     public_trie.clear()
     public_radix.clear()
 
@@ -36,15 +36,39 @@ async def clear(password):
         radix=public_radix.get_tree(),
     )
 
+
 @router.post("/pause/{password}")
 async def pause(password):
     if app_password != password:
         raise HTTPException(status_code=403, detail="Wrong password")
-    
+
     public_trie.block_insertion ^= True
     public_radix.block_insertion ^= True
 
     return {"status": "blocked" if public_radix.block_insertion else "not blocked"}
+
+
+@router.post("/add_list")
+async def add_list():
+    with open("data/words-to-add.txt", "r") as file:
+        words_list = file.read().splitlines()
+
+    for word in words_list[:150]:
+        public_trie.insert(word)
+        public_trie.update_tree()
+        public_radix.insert(word)
+        public_radix.update_tree()
+
+        await live_tree(
+            connections=active_connections,
+            trie=public_trie.get_tree(),
+            radix=public_radix.get_tree(),
+        )
+
+        await asyncio.sleep(0.1)  # Delay of 100ms
+
+    return {"detail": f"{len(words_list)} words added successfully"}
+
 
 @router.delete("/delete/{word}")
 async def delete(word):
@@ -52,7 +76,7 @@ async def delete(word):
 
     if not success:
         raise HTTPException(status_code=404, detail="Word not found")
-    
+
     await live_tree(
         connections=active_connections,
         trie=public_trie.get_tree(),
@@ -60,10 +84,10 @@ async def delete(word):
     )
 
 
-
 @router.get("/tree")
 async def generate_tree():
     return {"trie": public_trie.get_tree(), "radix": public_radix.get_tree()}
+
 
 async def live_tree(connections, trie, radix):
 
@@ -75,6 +99,7 @@ async def live_tree(connections, trie, radix):
         except Exception:
             connections.remove(connection)
 
+
 async def insert(word: str):
     if public_trie.block_insertion and public_radix.block_insertion:
         raise HTTPException(status_code=403, detail="Insertion is currently blocked")
@@ -83,7 +108,6 @@ async def insert(word: str):
     public_trie.update_tree()
     public_radix.insert(word)
     public_radix.update_tree()
-
 
     await live_tree(
         connections=active_connections,
@@ -103,6 +127,7 @@ async def insert_post(word: str):
         raise HTTPException(status_code=400, detail="Should be single word")
 
     await insert(word)
+
 
 @router.get("/matches/{word}")
 async def matches(word: str):
