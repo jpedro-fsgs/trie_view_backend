@@ -63,7 +63,7 @@ class Trie:
             node = node.children[char]
         return node.word == word
 
-    def matches(self, word, limit=50):
+    def matches(self, word):
         node = self.root
         matches_list = []
 
@@ -75,9 +75,6 @@ class Trie:
         stack = [node]
 
         while stack:
-            if len(matches_list) > limit:
-                return matches_list
-
             current_node = stack.pop()
             if current_node.word:
                 matches_list.append(current_node.word)

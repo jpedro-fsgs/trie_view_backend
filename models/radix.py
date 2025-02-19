@@ -90,10 +90,6 @@ class RadixTree:
 
 
     def remove(self, word):
-        """
-        Remove a palavra 'word' da árvore, se ela existir.
-        Percorre a árvore consumindo partes da palavra de acordo com as chaves dos nós.
-        """
         node = self.root
         stack = []  # Armazena os pares (nó pai, aresta utilizada, nó filho) para retroceder
         remaining = word
@@ -155,11 +151,6 @@ class RadixTree:
 
 
     def matches(self, prefix):
-        """
-        Retorna uma lista (com até 50 itens) de palavras armazenadas na árvore 
-        que começam com o prefixo fornecido.
-        Primeiro, localiza o nó correspondente ao prefixo e, em seguida, percorre a subárvore.
-        """
         node = self.root
         remaining = prefix
 
