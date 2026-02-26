@@ -6,6 +6,9 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from models.radix import RadixTree
 from models.trie import Trie
 import asyncio
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -13,9 +16,41 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 active_connections: Set[WebSocket] = set()
+snapshot_path = os.environ.get("PUBLIC_RADIX_SNAPSHOT_PATH", "data/snapshots/public_radix_words.json")
+snapshot_debounce_seconds = float(os.environ.get("PUBLIC_RADIX_SNAPSHOT_DEBOUNCE_SECONDS", "30"))
+public_snapshot_task: asyncio.Task | None = None
 
 public_trie = Trie()
 public_radix = RadixTree()
+
+loaded_words = public_radix.load_snapshot(snapshot_path)
+if loaded_words > 0:
+    for word in public_radix.get_all_words():
+        public_trie.insert(word)
+    public_trie.update_tree()
+    logger.info(f"Loaded public radix snapshot with {loaded_words} words")
+
+
+def save_public_snapshot():
+    total_words = public_radix.save_snapshot(snapshot_path)
+    logger.info(f"Saved public radix snapshot with {total_words} words")
+
+
+async def _save_public_snapshot_debounced():
+    try:
+        await asyncio.sleep(snapshot_debounce_seconds)
+        save_public_snapshot()
+    except asyncio.CancelledError:
+        return
+
+
+def schedule_public_snapshot():
+    global public_snapshot_task
+
+    if public_snapshot_task and not public_snapshot_task.done():
+        public_snapshot_task.cancel()
+
+    public_snapshot_task = asyncio.create_task(_save_public_snapshot_debounced())
 
 app_password = os.environ.get("APP_PASSWORD")
 
@@ -29,6 +64,7 @@ async def clear(password):
 
     public_trie.clear()
     public_radix.clear()
+    save_public_snapshot()
 
     await live_tree(
         connections=active_connections,
@@ -67,6 +103,8 @@ async def add_list():
 
         await asyncio.sleep(0.1)  # Delay of 100ms
 
+    schedule_public_snapshot()
+
     return {"detail": f"{len(words_list)} words added successfully"}
 
 
@@ -76,6 +114,8 @@ async def delete(word):
 
     if not success:
         raise HTTPException(status_code=404, detail="Word not found")
+
+    save_public_snapshot()
 
     await live_tree(
         connections=active_connections,
@@ -108,6 +148,7 @@ async def insert(word: str):
     public_trie.update_tree()
     public_radix.insert(word)
     public_radix.update_tree()
+    schedule_public_snapshot()
 
     await live_tree(
         connections=active_connections,

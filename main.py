@@ -1,12 +1,15 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 
+import logging
 from routes.public_tree import router as public_tree_router
 from routes.words_list_tree import router as words_list_router
-import logging
 
-allowed_origins = os.environ.get("ALLOWED_ORIGINS").split(',')
+load_dotenv()
+allowed_origins_env = os.environ.get("ALLOWED_ORIGINS", "")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

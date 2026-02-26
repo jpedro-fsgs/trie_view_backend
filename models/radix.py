@@ -1,3 +1,7 @@
+import json
+import os
+
+
 class RadixTreeNode:
     def __init__(self, key=""):
         self.key = key
@@ -213,3 +217,42 @@ class RadixTree:
 
     def get_tree(self):
         return self.tree_view
+
+    def get_all_words(self):
+        words = []
+        stack = [self.root]
+
+        while stack:
+            current = stack.pop()
+            if current.word is not None:
+                words.append(current.word)
+            stack.extend(current.children.values())
+
+        return sorted(words)
+
+    def save_snapshot(self, file_path):
+        words = self.get_all_words()
+        directory = os.path.dirname(file_path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+
+        temp_path = f"{file_path}.tmp"
+        with open(temp_path, "w", encoding="utf-8") as file:
+            json.dump(words, file, ensure_ascii=False)
+
+        os.replace(temp_path, file_path)
+        return len(words)
+
+    def load_snapshot(self, file_path):
+        if not os.path.exists(file_path):
+            return 0
+
+        with open(file_path, "r", encoding="utf-8") as file:
+            words = json.load(file)
+
+        self.clear()
+        for word in words:
+            self.insert(word)
+
+        self.update_tree()
+        return len(words)
